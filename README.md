@@ -45,4 +45,4 @@ use the tool with link: (link)
 - Add full multilingual UI.
 
 ## License
-No license specified. Add a `LICENSE` file if needed.
+No license specified.
