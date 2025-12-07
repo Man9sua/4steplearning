@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="kk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>4 Қадамдық Оқыту - Тарихи Фактілер</title>
+    <link rel="stylesheet" href="styles.css">
+    <!-- Google Analytics: replace GA_MEASUREMENT_ID with your ID -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=GA_MEASUREMENT_ID"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+      gtag('config', 'GA_MEASUREMENT_ID');
+    </script>
+</head>
+<body>
+    <div class="container">
+        <h1>🎓 4 Қадамдық Оқыту</h1>
+        <p class="subtitle">Тарихи фактілерді оқыту жүйесі</p>
+
+        <!-- Input Section -->
+        <div class="section" id="inputSection">
+            <h2>📝 Материалды енгізіңіз</h2>
+            <textarea id="materialInput" placeholder="Материалды келесі форматта енгізіңіз:
+1. Сұрақ: Жауап
+2. Сұрақ: Жауап
+..."></textarea>
+            
+            <div class="button-group">
+                <button onclick="showModuleModal()">🚀 Оқытуды бастау</button>
+                <button onclick="loadExample()">📄 Мысал жүктеу</button>
+                <button onclick="clearInput()">🗑️ Тазалау</button>
+            </div>
+
+            <div class="info-box">
+                <strong>📌 Формат:</strong> Әрбір жолда нөмір, сұрақ және жауап қос нүктемен бөлінген болуы керек.<br>
+                <em>Мысалы: "1. Қазақ хандығын құрды: Керей мен Жәнібек"</em>
+            </div>
+
+            <div id="errorMessage" class="error hidden"></div>
+        </div>
+
+        <!-- Learning Section -->
+        <div class="section hidden" id="learningSection">
+            <h2 id="moduleTitle">Оқыту модулі</h2>
+            
+            <div class="progress-bar">
+                <div class="progress-fill" id="progressBar">0%</div>
+            </div>
+            
+            <div class="score-board">
+                <div class="score-item">
+                    <div class="value" id="scoreValue">0</div>
+                    <div class="label">Дұрыс</div>
+                </div>
+                <div class="score-item">
+                    <div class="value" id="totalValue">0</div>
+                    <div class="label">Барлығы</div>
+                </div>
+                <div class="score-item">
+                    <div class="value" id="percentValue">0%</div>
+                    <div class="label">Дәлдік</div>
+                </div>
+            </div>
+
+            <!-- Module 1: Flash Cards -->
+            <div id="flashcardsModule" class="learning-module">
+                <div class="card-counter" id="cardCounter"></div>
+                <div id="flashcardContainer"></div>
+                <div class="navigation">
+                    <button id="prevCardBtn" onclick="previousCard()">← Алдыңғы</button>
+                    <button id="nextCardBtn" onclick="nextCard()">Келесі →</button>
+                </div>
+            </div>
+
+            <!-- Module 2: Quiz -->
+            <div id="quizModule" class="learning-module">
+                <div id="quizContainer"></div>
+            </div>
+
+            <!-- Module 3: Matching -->
+            <div id="matchingModule" class="learning-module">
+                <div id="matchingContainer" class="matching-container"></div>
+            </div>
+
+            <!-- Module 4: Fill Blanks with Symbols -->
+            <div id="fillBlanksModule" class="learning-module">
+                <div id="fillBlanksContainer"></div>
+            </div>
+
+            <!-- Completion -->
+            <div id="completionModule" class="learning-module">
+                <div class="completion-screen">
+                    <div class="trophy">🏆</div>
+                    <h2>Құттықтаймыз!</h2>
+                    <p>Сіз барлық модульдерді аяқтадыңыз!</p>
+                    <div class="completion-stats" id="completionStats"></div>
+                </div>
+            </div>
+
+            <div class="navigation" style="margin-top: 20px;">
+                <button id="prevModuleBtn" onclick="previousModule()">← Алдыңғы модуль</button>
+                <button id="nextModuleBtn" onclick="nextModule()">Келесі модуль →</button>
+                <button id="finishBtn" class="result-btn" onclick="finishAndShowResults()">📊 Нәтиже</button>
+                <button onclick="resetLearning()">🔄 Қайта бастау</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Module Selection Modal -->
+    <div class="modal-overlay" id="moduleModal">
+        <div class="modal">
+            <h3>📚 Оқыту модульдерін таңдаңыз</h3>
+            <div class="modal-options">
+                <div class="modal-option">
+                    <input type="checkbox" id="chkFlashcards" checked>
+                    <label for="chkFlashcards">📇 Флэш-карталар</label>
+                </div>
+                <div class="modal-option">
+                    <input type="checkbox" id="chkQuiz" checked>
+                    <label for="chkQuiz">✅ Тест (дұрыс жауап)</label>
+                </div>
+                <div class="modal-option">
+                    <input type="checkbox" id="chkMatching" checked>
+                    <label for="chkMatching">🔗 Сәйкестендіру(in progress)</label>
+                </div>
+                <div class="modal-option">
+                    <input type="checkbox" id="chkFillBlanks" checked>
+                    <label for="chkFillBlanks">✏️ Әріптерді жинау(in progress)</label>
+                </div>
+            </div>
+            <div class="modal-buttons">
+                <button onclick="closeModal()">❌ Болдырмау</button>
+                <button onclick="startLearning()">▶️ Бастау</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
