@@ -23,7 +23,7 @@ Interactive web app that turns historical text into a 4-step learning flow: flas
 3. Click “Оқытуды бастау” (Start), select modules.
 4. Complete modules and view the results screen.
 or
-use the tool with link: (link)
+use the tool with link:(https://man9sua.github.io/4steplearning/)
 
 ## Files
 - `index.html` — page structure + module selection modal.
