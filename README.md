@@ -1,48 +1,59 @@
-# 4 Step Learning (English)
+# 4 Step Learning
 
-Interactive web app that turns historical text into a 4-step learning flow: flashcards, quiz, matching, and letter-based fill. Runs fully in the browser—no backend or build step needed.
+Interactive, mobile-friendly web app that turns plain text into a four-step learning flow: flashcards → quiz (MCQ) → matching → letter-build. Runs fully in the browser; Supabase powers optional auth and profiles.
 
-## Features
-- **Simple input:** each line `Question: Answer` (numbering optional).
-- **Module picker:** choose which steps to include (all enabled by default).
-- **Flashcards:** flippable card, knew/didn’t-know scoring, adaptive size.
-- **Quiz:** 4-option MCQ with correct/incorrect states.
-- **Matching:** uses all facts; correct pairs move to the top with green block.
-- **Letter build:** assemble the answer from shuffled characters, check, and auto-advance.
-- **Results:** total score, accuracy, per-section breakdown.
-- **Localization:** UI in Kazakh.
-- **Mobile-friendly:** responsive layout for phones/tablets.
+## What it does
+- Paste material as `Question: Answer` (numbering optional) and start learning.
+- Module picker (all on by default), always-available “Results” button in learning flow, hidden on results page.
+- Flashcards with flip + knew/didn’t-know scoring.
+- Quiz with context-aware distractors to make guessing harder.
+- Matching uses all facts; correct pairs move up with green highlight.
+- Letter-build: assemble answers from shuffled characters.
+- Results: total score, accuracy, per-section breakdown.
+- i18n: Kazakh, Russian, English for all static UI; choice persists.
+- UI/UX: welcome modal (one-time), themed modals above header, custom checkboxes, toast notifications (replaces alerts), disabled WIP buttons (scan/upload).
+- Responsive header/buttons for phones; redesigned back/home and finish button placement.
 
-## How to Run
-1. Open `index.html` directly in your browser (no server needed).
-2. Paste material in the format:
-   ```
-   1. Event question: Event answer
-   2. Territory question: Territory answer
-   ```
-3. Click “Оқытуды бастау” (Start), select modules.
-4. Complete modules and view the results screen.
-or
-use the tool with link:(https://man9sua.github.io/4steplearning/)
+## Quick start
+1) Open `index.html` in a modern browser (no build or server needed).  
+2) Paste material, e.g.  
+```
+1. Event question: Event answer
+2. Territory question: Territory answer
+```
+3) Click “Оқытуды бастау”, select modules, learn, and view results.
 
-## Files
-- `index.html` — page structure + module selection modal.
-- `styles.css` — styling, responsiveness, button states.
-- `script.js` — logic, module init, scoring, results.
+## File map
+- `index.html` — layout, modals (auth, account, module picker, FAQ, samples, welcome), toast container.
+- `styles.css` — theming, responsive header, modals, buttons, custom checkboxes/toasts.
+- `script.js` — parsing, module flow, scoring, i18n, Supabase auth/profile glue, toasts, welcome-modal logic, smarter quiz distractors.
+- `toimprove.rmd` — requirements/changelog source.
+- `functions/` — serverless helpers (e.g., `check-email`).
+- `db_setup.js` — sample Supabase table setup helper.
 
-## Configuration
-- Default modules: edit `enabledModules` in `script.js`.
-- Colors/sizing: adjust gradients and sizes in `styles.css`.
-- Example data: update `exampleText` in `script.js`.
+## Supabase (optional)
+- Set `SUPABASE_URL` and `SUPABASE_ANON_KEY` in `script.js` to enable login/signup, roles, and profiles.
+- Security: the anon key is public by design—use Row Level Security and least-privilege policies. If you must hide keys, route calls through a backend/serverless proxy (GitHub Pages alone cannot hide secrets).
+- Profiles: create `profiles(id uuid references auth.users, role text, email text, last_material text, created_at timestamptz)` and enable RLS with owner read/write.
 
-## Known Notes
-- Matching and letter-build are labeled “in progress” in UI, but logic is active.
-- “Нәтиже” button jumps to results anytime; unanswered items are counted as wrong.
+## i18n
+- Keys live in `i18n` inside `script.js`. Add/extend translations there; `applyTranslations()` updates all static UI.
 
-## Future Ideas
-- Add Google Analytics or Plausible in `<head>`.
-- Persist/save state via `localStorage`.
-- Add full multilingual UI.
+## OCR / samples
+- Scan/upload buttons are intentionally disabled until the flow is finalized. Samples modal lets you insert predefined materials with visible selection outline.
+
+## Deployment
+- Static hosting works (GitHub Pages, Netlify, Vercel static).  
+- With Supabase: static hosting is fine, but secrets stay public. To truly hide keys, put Supabase calls behind a protected backend/proxy (e.g., Vercel serverless) and keep secrets there.
+
+## Known notes
+- Matching and letter-build are labeled “in progress” in UI, but logic runs.
+- “Results” counts unanswered as wrong.
 
 ## License
-No license specified.
+No license specified. Add one if you plan to distribute/open-source.
+
+## Name ideas (short & memorable)
+- **StepWise**
+- **QuadLearn**
+- **StepFlow**

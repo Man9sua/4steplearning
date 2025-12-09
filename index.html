@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="kk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>4 Қадамдық Оқыту - Тарихи Фактілер</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;600;700&family=Orbitron:wght@600;700&display=swap" rel="stylesheet">
+    <!-- Google Analytics: replace GA_MEASUREMENT_ID with your ID -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=GA_MEASUREMENT_ID"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+      gtag('config', 'GA_MEASUREMENT_ID');
+    </script>
+    <!-- Supabase client (set URL/KEY in script.js) -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.2/dist/umd/supabase.min.js"></script>
+    <!-- Tesseract.js for OCR -->
+    <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+</head>
+<body>
+    <!-- Cosmic animated background -->
+    <div class="space-background">
+        <div class="space-gradient"></div>
+        <div class="space-gradient-2"></div>
+        <div class="space-gradient-3"></div>
+        <div class="stars"></div>
+        <div class="stars-2"></div>
+        <div class="shooting-stars">
+            <span class="shooting-star"></span><span class="shooting-star"></span><span class="shooting-star"></span><span class="shooting-star"></span><span class="shooting-star"></span>
+            <span class="shooting-star"></span><span class="shooting-star"></span><span class="shooting-star"></span><span class="shooting-star"></span><span class="shooting-star"></span>
+        </div>
+    </div>
+    <header class="global-topbar">
+        <div class="top-actions">
+            <div class="top-left">
+            <div class="lang-pill" id="langPill">
+                <button class="lang-btn" data-lang="kk" onclick="switchLang('kk')">KZ</button>
+                <button class="lang-btn" data-lang="ru" onclick="switchLang('ru')">RU</button>
+                <button class="lang-btn" data-lang="en" onclick="switchLang('en')">EN</button>
+            </div>
+            </div>
+            <div class="top-right">
+            <button class="ghost-btn" id="faqBtn" onclick="openFAQ()">FAQ</button>
+            <button class="ghost-btn" id="loginBtn" onclick="openLogin()">Login</button>
+            <button class="primary-btn" id="signupBtn" onclick="openRegister()">Sign up</button>
+            <button class="primary-btn hidden" id="accountBtn" onclick="openAccount()">Account</button>
+        </div>
+    </div>
+    </header>
+    <div class="container">
+
+        <!-- Home Section -->
+        <section id="homeSection" class="section">
+            <h1 id="homeTitle">🎓 4 Қадамдық Оқыту</h1>
+            <p class="subtitle" id="homeSubtitle">Тарихи фактілерді оқыту жүйесі</p>
+            <div class="card-grid">
+                <div class="feature-card" onclick="enterLearning()">
+                    <div class="feature-icon">🧠</div>
+                    <h3 id="feature1Title">4 Step Learning</h3>
+                    <p id="feature1Desc">Flashcards, Quiz, Matching, Fill letters</p>
+                </div>
+                <div class="feature-card disabled">
+                    <div class="feature-icon">🗂️</div>
+                    <h3 id="feature2Title">Library (coming soon)</h3>
+                    <p id="feature2Desc">Saved materials and shared sets</p>
+                </div>
+                <div class="feature-card disabled">
+                    <div class="feature-icon">📊</div>
+                    <h3 id="feature3Title">Teacher dashboard (coming soon)</h3>
+                    <p id="feature3Desc">Track students, assign materials</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Input Section -->
+        <div class="section hidden" id="inputSection">
+            <div class="input-header">
+                <button class="back-btn" onclick="goBackHome()" title="Back to main">←</button>
+                <h2 id="inputTitle">📝 Материалды енгізіңіз</h2>
+            </div>
+            <textarea id="materialInput" placeholder="Материалды келесі форматта енгізіңіз:
+1. Сұрақ: Жауап
+2. Сұрақ: Жауап
+..."></textarea>
+            <div class="input-inline-actions">
+                <div class="input-badges">
+                    <button class="mini-btn" id="correctBtn" onclick="runMaterialCorrector()">🛠️ Correct format</button>
+                    <button class="mini-btn" id="scanBtn" onclick="openCameraImport()" disabled>📷 Scan photo</button>
+                    <button class="mini-btn" id="uploadBtn" onclick="openFileImport()" disabled>📁 Upload file</button>
+                    <button class="mini-btn ghost" id="historyBtn" onclick="showHistory()">📜 History</button>
+                </div>
+                <div class="input-status" id="ocrStatus"></div>
+            </div>
+            
+            <div class="button-group">
+                <button id="startBtn" onclick="showModuleModal()">🚀 Оқытуды бастау</button>
+                <button id="loadBtn" onclick="openSamplesModal()">📄 Мысал жүктеу</button>
+                <button id="clearBtn" onclick="clearInput()">🗑️ Тазалау</button>
+            </div>
+
+            <div class="info-box">
+                <strong id="formatTitle">📌 Формат:</strong> <span id="formatText">Әрбір жолда нөмір, сұрақ және жауап қос нүктемен бөлінген болуы керек.</span><br>
+                <em id="formatExample">Мысалы: "1. Қазақ хандығын құрды: Керей мен Жәнібек"</em>
+            </div>
+
+            <div id="errorMessage" class="error hidden"></div>
+        </div>
+
+        <!-- Learning Section -->
+        <div class="section hidden" id="learningSection">
+            <h2 id="moduleTitle">Оқыту модулі</h2>
+            
+            <div class="progress-bar">
+                <div class="progress-fill" id="progressBar">0%</div>
+            </div>
+            
+            <div class="score-board">
+                <div class="score-item">
+                    <div class="value" id="scoreValue">0</div>
+                    <div class="label" id="scoreLabelCorrect">Дұрыс</div>
+                </div>
+                <div class="score-item">
+                    <div class="value" id="totalValue">0</div>
+                    <div class="label" id="scoreLabelTotal">Барлығы</div>
+                </div>
+                <div class="score-item">
+                    <div class="value" id="percentValue">0%</div>
+                    <div class="label" id="scoreLabelAccuracy">Дәлдік</div>
+                </div>
+            </div>
+
+            <!-- Module 1: Flash Cards -->
+            <div id="flashcardsModule" class="learning-module">
+                <div class="card-counter" id="cardCounter"></div>
+                <div id="flashcardContainer"></div>
+                <div class="navigation">
+                    <button id="prevCardBtn" onclick="previousCard()">← Алдыңғы</button>
+                    <button id="nextCardBtn" onclick="nextCard()">Келесі →</button>
+                </div>
+            </div>
+
+            <!-- Module 2: Quiz -->
+            <div id="quizModule" class="learning-module">
+                <div id="quizContainer"></div>
+            </div>
+
+            <!-- Module 3: Matching -->
+            <div id="matchingModule" class="learning-module">
+                <div id="matchingContainer" class="matching-container"></div>
+            </div>
+
+            <!-- Module 4: Fill Blanks with Symbols -->
+            <div id="fillBlanksModule" class="learning-module">
+                <div id="fillBlanksContainer"></div>
+            </div>
+
+            <!-- Completion -->
+            <div id="completionModule" class="learning-module">
+                <div class="completion-screen">
+                    <div class="trophy">🏆</div>
+                    <h2>Құттықтаймыз!</h2>
+                    <p>Сіз барлық модульдерді аяқтадыңыз!</p>
+                    <div class="completion-stats" id="completionStats"></div>
+                </div>
+            </div>
+
+            <div class="navigation" style="margin-top: 20px;">
+                <button id="prevModuleBtn" onclick="previousModule()">← Алдыңғы модуль</button>
+                <button id="nextModuleBtn" onclick="nextModule()">Келесі модуль →</button>
+                <button id="resetBtn" onclick="resetLearning()">🔄 Қайта бастау</button>
+            </div>
+            <div class="navigation finish-row">
+                <button id="finishBtn" class="result-btn" onclick="finishAndShowResults()">📊 Нәтиже</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Welcome Modal -->
+    <div class="modal-overlay" id="welcomeModal">
+        <div class="modal welcome-modal">
+            <h3 id="welcomeTitle">🎓 Қош келдіңіз!</h3>
+            <div class="welcome-content" id="welcomeContent">
+                <p id="welcomeText1">4 Step Learning жобасына қош келдіңіз!</p>
+                <p id="welcomeText2">Бұл тегін пайдалануға арналған сынақ нұсқасы.</p>
+                <p id="welcomeText3">Материалдарды оқып, білім деңгейіңізді тексеріңіз.</p>
+            </div>
+            <div class="modal-buttons">
+                <button onclick="closeWelcomeModal()" id="welcomeBtn">✓ Түсіндім</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Module Selection Modal -->
+    <div class="modal-overlay" id="moduleModal">
+        <div class="modal">
+            <div class="close-btn" onclick="closeModuleModal()">✕</div>
+            <h3>📚 Оқыту модульдерін таңдаңыз</h3>
+            <div class="modal-options">
+                <div class="modal-option">
+                    <input type="checkbox" id="chkFlashcards" checked>
+                    <label for="chkFlashcards">📇 Флэш-карталар</label>
+                </div>
+                <div class="modal-option">
+                    <input type="checkbox" id="chkQuiz" checked>
+                    <label for="chkQuiz">✅ Тест (дұрыс жауап)</label>
+                </div>
+                <div class="modal-option">
+                    <input type="checkbox" id="chkMatching" checked>
+                    <label for="chkMatching">🔗 Сәйкестендіру(in progress)</label>
+                </div>
+                <div class="modal-option">
+                    <input type="checkbox" id="chkFillBlanks" disabled>
+                    <label for="chkFillBlanks">✏️ Әріптерді жинау(in progress)</label>
+                </div>
+            </div>
+            <div class="modal-buttons">
+                <button onclick="closeModuleModal()">❌ Болдырмау</button>
+                <button onclick="startLearning()">▶️ Бастау</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Auth Modal -->
+    <div class="modal-overlay" id="authModal">
+        <div class="modal auth-wizard">
+            <div class="close-btn" onclick="closeAuthModal()">✕</div>
+            <h3 id="authModalTitle">Login</h3>
+            <div id="authStepContainer">
+                <!-- Steps injected dynamically -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Account Modal -->
+    <div class="modal-overlay" id="accountModal">
+        <div class="modal account-modal">
+            <div class="close-btn" onclick="closeAccount()">✕</div>
+            <h3 id="accountTitle">Account</h3>
+            <div id="accountInfo"></div>
+            <div class="modal-buttons">
+                <button onclick="logout()">🚪 Logout</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- FAQ Modal -->
+    <div class="modal-overlay" id="faqModal">
+        <div class="modal">
+            <div class="close-btn" onclick="closeFAQ()">✕</div>
+            <h3 id="faqTitle">FAQ</h3>
+            <div id="faqContent">
+                <div id="faqText" class="faq-list"></div>
+            </div>
+            <div class="modal-buttons">
+                <button onclick="closeFAQ()">OK</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Samples Modal -->
+    <div class="modal-overlay" id="samplesModal">
+        <div class="modal samples-modal">
+            <div class="close-btn" onclick="closeModalById('samplesModal')">✕</div>
+            <h3 id="samplesTitle">Мысалдар</h3>
+            <div id="samplesList"></div>
+            <div class="modal-fields">
+                <input type="text" id="sampleName" placeholder="Sample name">
+                <textarea id="sampleText" placeholder="Sample content"></textarea>
+            </div>
+            <div class="modal-buttons">
+                <button onclick="addSample()">➕ Add</button>
+                <button onclick="insertSample()">📥 Insert</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Hidden inputs for OCR -->
+    <input type="file" id="fileInput" accept=".png,.jpg,.jpeg,.pdf" class="hidden">
+    <input type="file" id="cameraInput" accept="image/*" capture="environment" class="hidden">
+
+    <!-- Toast Container -->
+    <div class="toast-container" id="toastContainer"></div>
+
+    <script src="script.js"></script>
+</body>
+</html>
