@@ -126,8 +126,8 @@ const i18n = {
         // Module modal
         moduleModalTitle: '📚 Оқыту модульдерін таңдаңыз',
         moduleFlashcards: '📇 Флэш-карталар',
-        moduleQuiz: '✅ Тест (дұрыс жауап)',
-        moduleMatching: '🔗 Сәйкестендіру (дайындалуда)',
+        moduleQuiz: '✅ Тест',
+        moduleMatching: '🔗 Сәйкестендіру',
         moduleFillBlanks: '✏️ Әріптерді жинау (дайындалуда)',
         moduleCancel: '❌ Болдырмау',
         moduleStart: '▶️ Бастау',
@@ -236,8 +236,8 @@ const i18n = {
         // Module modal
         moduleModalTitle: '📚 Выберите модули обучения',
         moduleFlashcards: '📇 Флэш-карты',
-        moduleQuiz: '✅ Тест (правильный ответ)',
-        moduleMatching: '🔗 Сопоставление (в разработке)',
+        moduleQuiz: '✅ Тест',
+        moduleMatching: '🔗 Сопоставление',
         moduleFillBlanks: '✏️ Сбор букв (в разработке)',
         moduleCancel: '❌ Отмена',
         moduleStart: '▶️ Начать',
@@ -346,8 +346,8 @@ const i18n = {
         // Module modal
         moduleModalTitle: '📚 Select learning modules',
         moduleFlashcards: '📇 Flashcards',
-        moduleQuiz: '✅ Quiz (correct answer)',
-        moduleMatching: '🔗 Matching (in progress)',
+        moduleQuiz: '✅ Quiz',
+        moduleMatching: '🔗 Matching',
         moduleFillBlanks: '✏️ Letter collection (in progress)',
         moduleCancel: '❌ Cancel',
         moduleStart: '▶️ Start',
