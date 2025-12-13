@@ -73,12 +73,186 @@ const supabaseClient = (typeof supabase !== 'undefined')
     ? supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
     : null;
 
+// Google Sheets API configuration
+const SHEETS_API_URL = 'https://ozgergsheets.kengot987654321.workers.dev';
+let sheetsData = null;
+
+// Fallback data in case Google Sheets API is not available
+const fallbackSheetsData = [
+    ["Алтын Орданың құлауы мен Ақ Орданың әлсіреуі барысында пайда болған мемлекеттің бірі", "Ноғай Ордасы"],
+    ["Ноғай Ордасының жер аумағы", "Еділ мен Жайық аралығында болды"],
+    ["Орталығы", "Жайықтың төменгі ағысы бойындағы қазіргі Атырау жанындағы Сарайшық қаласында орналасты"],
+    ["Сарайшық қаласының негізін", "XIII ғасырдың екінші жартысында Жошы ұрпақтары қалады"],
+    ["Сарайшықты XVI ғасырдың соңында", "Дон және Еділ казактары қаланы басып алып, тонауға ұшыратты"],
+    ["Жаңа мемлекеттің атауы байланысты", "Алтын Орданың әскер басы Ноғай есімімен"],
+    ["Үлкен ұлысты басқарды", "Ноғай"],
+    ["Мемлекеттегі маңыздылығы жағынан екінші орындағы лауазым", "беклербек"],
+    ["Маңғыт жұрты деп аталды", "Жайық пен Еділ аралығындағы тайпалар бірлестігі"],
+    ["Маңғыт жұртының (Ноғай Ордасының) қалыптасуы аяқталды", "XV ғасырдың бірінші жартысында"],
+    ["Ноғай Ордасының негізгі тұрғындары", "маңғыттар тайпасы"],
+    ["Ноғай Ордасының тәуелсіз мемлекет ретінде қалыптасуы", "Едіге тұсында"],
+    ["Ноғай Ордасы Алтын Ордадан бөліне бастады", "Едіге билік еткен тұста"],
+    ["Ноғай Ордасы XV ғасырдың ортасына қарай", "Едігенің ұлы Нұраддиннің тұсында түпкілікті түрде оқшауланды"],
+    ["XV ғасырдың екінші жартысына қарай ноғайлар жылжыды", "«өзбектер» жеріне"],
+    ["Ұлыстар басында тұрды", "мырзалар (түркі тайпаларының басшылары)"],
+    ["Үлкен кеңес", "жоғарғы билік болып табылды, оған ақсүйектер мен Едіге ұрпақтары енді"],
+    ["XVI ғасырдың басында", "Ноғай Ордасында құлдырау кезеңі басталды"],
+    ["XVI ғасырдың 50-жылдары", "Ноғай Ордасы бірнеше дербес иеліктерге бөлінді"],
+    ["Ноғайлар мен қазақтарды «екі туысқан Орда» деп атады", "Шоқан Уәлиханов"],
+    ["Ноғай Ордасы өркендеу дәуірінің белгісі болып табылады", "Едіге, Қамбар батыр, Ер Тарғын және басқа батырларға арналған эпостар"]
+];
+
 let currentUser = null;
 let currentRole = 'student';
 let emailConfirmed = false;
 
 // Language selection
 let currentLang = localStorage.getItem('lang') || 'kk';
+
+// ==================== GOOGLE SHEETS API FUNCTIONS ====================
+async function loadSheetsData() {
+    try {
+        console.log('Attempting to load data from Google Sheets API...');
+        const response = await fetch(SHEETS_API_URL);
+
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        const contentType = response.headers.get('content-type');
+        if (contentType && contentType.includes('application/json')) {
+            const data = await response.json();
+            sheetsData = data.values || [];
+            console.log('Google Sheets data loaded successfully:', sheetsData);
+        } else {
+            // If API returns plain text, use fallback data
+            console.warn('Google Sheets API returned non-JSON response, using fallback data');
+            sheetsData = fallbackSheetsData;
+        }
+
+        return sheetsData;
+    } catch (error) {
+        console.error('Error loading Google Sheets data:', error);
+        console.log('Using fallback data instead...');
+        showToast('Используются локальные данные (Google Sheets недоступен)', 'warning');
+
+        // Use fallback data
+        sheetsData = fallbackSheetsData;
+        return sheetsData;
+    }
+}
+
+async function saveToSheets(action, data) {
+    try {
+        // Prepare data to send to Google Sheets
+        const timestamp = new Date().toISOString();
+        const userEmail = currentUser?.email || 'anonymous';
+        const userRole = currentRole || 'student';
+
+        const sheetData = {
+            timestamp,
+            userEmail,
+            userRole,
+            action,
+            ...data
+        };
+
+        console.log('Attempting to save data to Google Sheets...');
+
+        // Send data to Google Sheets via API
+        const response = await fetch(SHEETS_API_URL, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(sheetData)
+        });
+
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        const result = await response.text();
+        if (result === 'OK' || result.includes('success')) {
+            console.log('Data saved to Google Sheets successfully:', sheetData);
+            return true;
+        } else {
+            console.warn('Unexpected response from Google Sheets API:', result);
+            return true; // Still consider it successful
+        }
+    } catch (error) {
+        console.error('Error saving to Google Sheets:', error);
+        // Don't show error toast for saving - just log it
+        console.log('Data saving failed, but continuing...');
+        return false;
+    }
+}
+
+async function saveLearningResults(results) {
+    const data = {
+        totalScore: score,
+        totalQuestions: totalQuestions,
+        accuracy: totalQuestions > 0 ? Math.round((score / totalQuestions) * 100) : 0,
+        modulesCompleted: {
+            flashcards: enabledModules.flashcards,
+            quiz: enabledModules.quiz,
+            matching: enabledModules.matching,
+            fillBlanks: enabledModules.fillBlanks
+        },
+        sectionScores: sectionScores,
+        materialLength: factsData.length,
+        language: currentLang,
+        ...results
+    };
+
+    return await saveToSheets('learning_completed', data);
+}
+
+async function saveUserAction(action, details = {}) {
+    const data = {
+        page: window.location.pathname,
+        userAgent: navigator.userAgent,
+        ...details
+    };
+
+    return await saveToSheets(action, data);
+}
+
+// Get data from Google Sheets for use in app
+function getSheetsSampleData() {
+    if (!sheetsData || sheetsData.length === 0) {
+        return null;
+    }
+
+    // Return a random sample from sheets data
+    const randomIndex = Math.floor(Math.random() * Math.min(sheetsData.length, 10));
+    const sampleRow = sheetsData[randomIndex];
+
+    if (sampleRow && sampleRow.length >= 2) {
+        return {
+            name: sampleRow[0] || `Sample from Sheets ${randomIndex + 1}`,
+            text: sampleRow[1] || ''
+        };
+    }
+
+    return null;
+}
+
+// Load examples from Google Sheets
+async function loadSheetsExamples() {
+    await loadSheetsData();
+
+    if (sheetsData && sheetsData.length > 0) {
+        const sheetsExamples = sheetsData.slice(0, 5).map((row, index) => ({
+            name: row[0] || `Sheets Example ${index + 1}`,
+            text: row[1] || ''
+        })).filter(example => example.text.trim());
+
+        // Add to existing samples
+        currentSamples = [...currentSamples, ...sheetsExamples];
+        saveSamples(currentSamples);
+    }
+}
 
 const i18n = {
     kk: {
@@ -683,6 +857,10 @@ async function submitRegisterPassword() {
         localStorage.setItem('lastAuthEmail', pendingEmail);
         setAuthStep('register-wait');
         showToast(t('registerWaitToast'), 'info');
+
+        // Track registration in Google Sheets
+        await saveUserAction('user_registered', { email: pendingEmail });
+
         if (emailConfirmed) {
             await sendWelcomeEmail(pendingEmail);
             updateAuthUI();
@@ -821,6 +999,8 @@ async function submitAuth(evt) {
         showToast('Signed in as ' + (currentUser?.email || ''), 'success');
         if (emailConfirmed) {
             await sendWelcomeEmail(email);
+            // Track login in Google Sheets
+            await saveUserAction('user_login', { email: currentUser.email, role: currentRole });
         }
         await syncProfile(role);
         updateAuthUI();
@@ -916,7 +1096,7 @@ function closeModuleModal() {
     closeModalById('moduleModal');
 }
 
-function startLearning() {
+async function startLearning() {
     // Get selected modules
     enabledModules.flashcards = document.getElementById('chkFlashcards').checked;
     enabledModules.quiz = document.getElementById('chkQuiz').checked;
@@ -944,6 +1124,12 @@ function startLearning() {
     document.getElementById('inputSection').classList.add('hidden');
     document.getElementById('learningSection').classList.remove('hidden');
     updateTopActionsVisibility();
+
+    // Track learning start in Google Sheets
+    await saveUserAction('learning_started', {
+        materialLength: factsData.length,
+        modulesSelected: enabledModules
+    });
     
     // Reset all navigation buttons visibility for new session
     const finishRow = document.querySelector('.navigation.finish-row');
@@ -1116,8 +1302,10 @@ function selectSample(idx) {
     renderSamples();
 }
 
-function openSamplesModal() {
+async function openSamplesModal() {
     currentSamples = loadSamples();
+    // Load additional examples from Google Sheets
+    await loadSheetsExamples();
     renderSamples();
     openModalById('samplesModal');
 }
@@ -1961,8 +2149,11 @@ function skipToNextFill(nextIndex) {
 }
 
 // ==================== COMPLETION ====================
-function showCompletion() {
+async function showCompletion() {
     const statsContainer = document.getElementById('completionStats');
+
+    // Save learning results to Google Sheets
+    await saveLearningResults();
     
     // Update completion titles
     const completionH2 = document.querySelector('#completionModule .completion-screen h2');
@@ -2047,7 +2238,7 @@ function checkWelcomeModal() {
 }
 
 // ==================== INIT ====================
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
     initLanguageSwitcher();
     // Default view: homeSection shown, learning hidden
     document.getElementById('homeSection')?.classList.remove('hidden');
@@ -2057,6 +2248,12 @@ document.addEventListener('DOMContentLoaded', () => {
     loadSession();
     renderAuthStep();
     checkWelcomeModal();
+
+    // Load Google Sheets data on startup
+    await loadSheetsData();
+
+    // Track user actions
+    await saveUserAction('app_loaded');
 });
 
 function t(key) {
