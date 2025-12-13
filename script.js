@@ -215,7 +215,12 @@ async function saveUserAction(action, details = {}) {
         ...details
     };
 
-    return await saveToSheets(action, data);
+    // Don't block the app if tracking fails
+    try {
+        await saveToSheets(action, data);
+    } catch (error) {
+        console.log('User action tracking failed (non-critical):', error.message);
+    }
 }
 
 // Get data from Google Sheets for use in app
@@ -2249,11 +2254,30 @@ document.addEventListener('DOMContentLoaded', async () => {
     renderAuthStep();
     checkWelcomeModal();
 
-    // Load Google Sheets data on startup
-    await loadSheetsData();
+    // Load Google Sheets data on startup (with timeout for GitHub Pages)
+    try {
+        // Set a timeout for the data loading to prevent hanging on slow networks
+        const dataPromise = loadSheetsData();
+        const timeoutPromise = new Promise((_, reject) =>
+            setTimeout(() => reject(new Error('Timeout')), 5000)
+        );
 
-    // Track user actions
-    await saveUserAction('app_loaded');
+        await Promise.race([dataPromise, timeoutPromise]);
+        console.log('Sheets data loaded successfully');
+    } catch (error) {
+        console.log('Sheets data loading failed, using fallback data:', error.message);
+        // Ensure we have fallback data available
+        if (!sheetsData || sheetsData.length === 0) {
+            sheetsData = fallbackSheetsData;
+        }
+    }
+
+    // Track user actions (don't fail if this doesn't work)
+    try {
+        await saveUserAction('app_loaded');
+    } catch (error) {
+        console.log('User action tracking failed:', error.message);
+    }
 });
 
 function t(key) {

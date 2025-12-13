@@ -43,7 +43,8 @@ Interactive, mobile-friendly web app that turns plain text into a four-step lear
 - Scan/upload buttons are intentionally disabled until the flow is finalized. Samples modal lets you insert predefined materials with visible selection outline.
 
 ## Deployment
-- Static hosting works (GitHub Pages, Netlify, Vercel static).  
+- Static hosting works (GitHub Pages, Netlify, Vercel static).
+- **GitHub Pages**: Works out of the box with fallback data. Upload all files to your repository and enable Pages in settings. The app will use local data if Google Sheets API is unavailable.
 - With Supabase: static hosting is fine, but secrets stay public. To truly hide keys, put Supabase calls behind a protected backend/proxy (e.g., Vercel serverless) and keep secrets there.
 
 ## Known notes
