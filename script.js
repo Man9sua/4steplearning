@@ -126,8 +126,8 @@ const i18n = {
         // Module modal
         moduleModalTitle: '📚 Оқыту модульдерін таңдаңыз',
         moduleFlashcards: '📇 Флэш-карталар',
-        moduleQuiz: '✅ Тест',
-        moduleMatching: '🔗 Сәйкестендіру',
+        moduleQuiz: '✅ Тест (дұрыс жауап)',
+        moduleMatching: '🔗 Сәйкестендіру (дайындалуда)',
         moduleFillBlanks: '✏️ Әріптерді жинау (дайындалуда)',
         moduleCancel: '❌ Болдырмау',
         moduleStart: '▶️ Бастау',
@@ -167,6 +167,7 @@ const i18n = {
         emailPlaceholder: 'Email',
         passwordPlaceholder: 'Құпиясөз',
         checkEmail: 'Тіркелуді растау үшін email-ді тексеріңіз.',
+        registerWaitToast: 'Email-ды растаған соң тіркелген деректермен кіріңіз. Хаттағы сілтеме ашылмаса — бұл қалыпты.',
         resetPassword: 'Құпиясөзді қалпына келтіру',
         resetEmailSent: 'Қалпына келтіру сілтемесі/коды поштаға жіберілді.',
         // Account
@@ -236,8 +237,8 @@ const i18n = {
         // Module modal
         moduleModalTitle: '📚 Выберите модули обучения',
         moduleFlashcards: '📇 Флэш-карты',
-        moduleQuiz: '✅ Тест',
-        moduleMatching: '🔗 Сопоставление',
+        moduleQuiz: '✅ Тест (правильный ответ)',
+        moduleMatching: '🔗 Сопоставление (в разработке)',
         moduleFillBlanks: '✏️ Сбор букв (в разработке)',
         moduleCancel: '❌ Отмена',
         moduleStart: '▶️ Начать',
@@ -277,6 +278,7 @@ const i18n = {
         emailPlaceholder: 'Email',
         passwordPlaceholder: 'Пароль',
         checkEmail: 'Проверьте email для подтверждения регистрации.',
+        registerWaitToast: 'После подтверждения почты войдите с зарегистрированными данными. Если ссылка в письме не открывается — это нормально.',
         resetPassword: 'Сброс пароля',
         resetEmailSent: 'Ссылка/код для сброса отправлены на почту.',
         // Account
@@ -346,8 +348,8 @@ const i18n = {
         // Module modal
         moduleModalTitle: '📚 Select learning modules',
         moduleFlashcards: '📇 Flashcards',
-        moduleQuiz: '✅ Quiz',
-        moduleMatching: '🔗 Matching',
+        moduleQuiz: '✅ Quiz (correct answer)',
+        moduleMatching: '🔗 Matching (in progress)',
         moduleFillBlanks: '✏️ Letter collection (in progress)',
         moduleCancel: '❌ Cancel',
         moduleStart: '▶️ Start',
@@ -387,6 +389,7 @@ const i18n = {
         emailPlaceholder: 'Email',
         passwordPlaceholder: 'Password',
         checkEmail: 'Check your email to confirm registration.',
+        registerWaitToast: 'After confirming your email, sign in with your registered credentials. If the link in the email does not open a page, that is expected.',
         resetPassword: 'Reset password',
         resetEmailSent: 'Reset link/code sent to your email.',
         // Account
@@ -679,6 +682,7 @@ async function submitRegisterPassword() {
         emailConfirmed = !!data.user?.email_confirmed_at;
         localStorage.setItem('lastAuthEmail', pendingEmail);
         setAuthStep('register-wait');
+        showToast(t('registerWaitToast'), 'info');
         if (emailConfirmed) {
             await sendWelcomeEmail(pendingEmail);
             updateAuthUI();

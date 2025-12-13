@@ -287,31 +287,30 @@
 
     <script src="script.js"></script>
     <script type="module">
-  import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm"
-
-  const supabase = createClient(
-    "https://wuciyhbdwzesnzinbux.supabase.co",
-    "PUBLIC_ANON_KEY"
-  )
-
-  // ⬇️ ГЛАВНОЕ
-  await supabase.auth.getSession()
-
-  // Чистим hash
-  if (location.hash) {
-    history.replaceState(null, "", location.pathname)
-  }
-
-</script>
-<script>
-fetch("-ozgergsheets.kengot987654321.workers.dev")
-  .then(res => res.json())
-  .then(data => {
-    console.log(data.values);
-  });
-</script>
-
-</body>
-</html>
+        import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm"
+      
+        const supabase = createClient(
+          "https://wuciyhbdwzesnzinbux.supabase.co",
+          "PUBLIC_ANON_KEY"
+        )
+      
+        // ⬇️ ГЛАВНОЕ
+        await supabase.auth.getSession()
+      
+        // Чистим hash
+        if (location.hash) {
+          history.replaceState(null, "", location.pathname)
+        }
+      
+      </script>
+      <script>
+        fetch("-ozgergsheets.kengot987654321.workers.dev")
+          .then(res => res.json())
+          .then(data => {
+            console.log(data.values);
+          });
+        </script>
+      </body>
+      </html>
 </body>
 </html>
