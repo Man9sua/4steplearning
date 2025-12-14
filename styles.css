@@ -865,6 +865,20 @@ button:disabled {
     margin-bottom: 16px;
 }
 
+.timer-display {
+    display: block;
+    text-align: center;
+    font-size: 2em;
+    font-weight: bold;
+    color: #7ef29c;
+    margin: 10px 0;
+    font-family: 'Orbitron', monospace;
+}
+
+.timer-display.hidden {
+    display: none;
+}
+
 .modal-fields input,
 .modal-fields select {
     min-height: 44px;

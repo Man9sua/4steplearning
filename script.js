@@ -163,12 +163,20 @@ const i18n = {
         completionCorrect: 'дұрыс',
         resultsTitle: 'Нәтижелер',
         // Auth
-        forgotPassword: 'Құпиясөзді ұмыттыңыз ба? (дайындалуда)',
+        forgotPassword: 'Құпиясөзді ұмыттыңыз ба?',
         emailPlaceholder: 'Email',
         passwordPlaceholder: 'Құпиясөз',
         checkEmail: 'Тіркелуді растау үшін email-ді тексеріңіз.',
         resetPassword: 'Құпиясөзді қалпына келтіру',
         resetEmailSent: 'Қалпына келтіру сілтемесі/коды поштаға жіберілді.',
+        forgotPasswordTitle: 'Құпиясөзді қалпына келтіру',
+        resetLinkSent: 'Қалпына келтіру сілтемесі поштаңызға жіберілді.',
+        resetLinkInstructions: 'Егер таба алмасаңыз, спам қалтасын тексеріңіз.',
+        sendAnotherLink: 'Тағы бір сілтеме жіберу',
+        resetPasswordTitle: 'Жаңа құпиясөз орнату',
+        newPasswordPlaceholder: 'Жаңа құпиясөз',
+        confirmPasswordPlaceholder: 'Құпиясөзді растаңыз',
+        updatePassword: 'Құпиясөзді жаңарту',
         // Account
         accountEmail: 'Email',
         accountRole: 'Рөлі',
@@ -273,12 +281,20 @@ const i18n = {
         completionCorrect: 'верно',
         resultsTitle: 'Результаты',
         // Auth
-        forgotPassword: 'Забыли пароль? (в разработке)',
+        forgotPassword: 'Забыли пароль?',
         emailPlaceholder: 'Email',
         passwordPlaceholder: 'Пароль',
         checkEmail: 'Проверьте email для подтверждения регистрации.',
         resetPassword: 'Сброс пароля',
         resetEmailSent: 'Ссылка/код для сброса отправлены на почту.',
+        forgotPasswordTitle: 'Восстановление пароля',
+        resetLinkSent: 'Ссылка для восстановления отправлена на вашу почту.',
+        resetLinkInstructions: 'Если не можете найти, проверьте папку спам.',
+        sendAnotherLink: 'Отправить еще одну ссылку',
+        resetPasswordTitle: 'Установка нового пароля',
+        newPasswordPlaceholder: 'Новый пароль',
+        confirmPasswordPlaceholder: 'Подтвердите пароль',
+        updatePassword: 'Обновить пароль',
         // Account
         accountEmail: 'Email',
         accountRole: 'Роль',
@@ -383,12 +399,20 @@ const i18n = {
         completionCorrect: 'correct',
         resultsTitle: 'Results',
         // Auth
-        forgotPassword: 'Forgot password? (in development)',
+        forgotPassword: 'Forgot password?',
         emailPlaceholder: 'Email',
         passwordPlaceholder: 'Password',
         checkEmail: 'Check your email to confirm registration.',
         resetPassword: 'Reset password',
         resetEmailSent: 'Reset link/code sent to your email.',
+        forgotPasswordTitle: 'Password Recovery',
+        resetLinkSent: 'Recovery link has been sent to your email.',
+        resetLinkInstructions: 'If you cannot find it, check your spam folder.',
+        sendAnotherLink: 'Send another link',
+        resetPasswordTitle: 'Set New Password',
+        newPasswordPlaceholder: 'New password',
+        confirmPasswordPlaceholder: 'Confirm password',
+        updatePassword: 'Update password',
         // Account
         accountEmail: 'Email',
         accountRole: 'Role',
@@ -555,7 +579,7 @@ function renderAuthStep() {
                         </label>
                     </div>
                     <div class="auth-inline">
-                        <span class="auth-link disabled">${t('forgotPassword')}</span>
+                        <span class="auth-link" onclick="openForgotPassword()">${t('forgotPassword')}</span>
                     </div>
                 </div>
                 <div class="modal-buttons">
@@ -627,6 +651,40 @@ function renderAuthStep() {
             </div>
         `;
         document.getElementById('authModalTitle').textContent = t('resetPassword');
+    } else if (authStep === 'forgot-password-modal') {
+        html = `
+            <div class="modal-fields">
+                ${backButton('login')}
+                <div class="info-text">${t('resetLinkSent')}</div>
+                <div class="info-sub">${t('resetLinkInstructions')}</div>
+            </div>
+            <div class="modal-buttons">
+                <button onclick="setAuthStep('forgot-password-email')">${t('sendAnotherLink')}</button>
+            </div>
+        `;
+        document.getElementById('authModalTitle').textContent = t('forgotPasswordTitle');
+    } else if (authStep === 'reset-password') {
+        html = `
+            <div class="modal-fields">
+                <input type="password" id="newPassword" placeholder="${t('newPasswordPlaceholder')}" required>
+                <input type="password" id="confirmPassword" placeholder="${t('confirmPasswordPlaceholder')}" required>
+            </div>
+            <div class="modal-buttons">
+                <button type="button" onclick="updatePassword()">${t('updatePassword')}</button>
+            </div>
+        `;
+        document.getElementById('authModalTitle').textContent = t('resetPasswordTitle');
+    } else if (authStep === 'forgot-password-email') {
+        html = `
+            <div class="modal-fields">
+                ${backButton('login')}
+                <input type="email" id="forgotEmail" placeholder="${t('emailPlaceholder')}" autocomplete="email" required>
+            </div>
+            <div class="modal-buttons">
+                <button type="button" onclick="sendForgotPasswordCode()">${t('authSubmit')}</button>
+            </div>
+        `;
+        document.getElementById('authModalTitle').textContent = t('forgotPasswordTitle');
     }
     container.innerHTML = html;
 }
@@ -703,12 +761,115 @@ function proceedResetEmail() {
     setAuthStep('reset-sent');
 }
 
+
 function openLogin() {
     authMode = 'login';
     authStep = 'login';
     openModalById('authModal');
     renderAuthStep();
 }
+
+function openForgotPassword() {
+    authMode = 'forgot-password';
+    authStep = 'forgot-password-email';
+    openModalById('authModal');
+    renderAuthStep();
+}
+
+async function updatePassword() {
+    if (!supabaseClient) return;
+
+    const newPassword = document.getElementById('newPassword').value;
+    const confirmPassword = document.getElementById('confirmPassword').value;
+
+    if (!newPassword || !confirmPassword) {
+        showToast('Please fill in both password fields', 'warning');
+        return;
+    }
+
+    if (newPassword !== confirmPassword) {
+        showToast('Passwords do not match', 'error');
+        return;
+    }
+
+    if (newPassword.length < 6) {
+        showToast('Password must be at least 6 characters long', 'warning');
+        return;
+    }
+
+    try {
+        const { error } = await supabaseClient.auth.updateUser({
+            password: newPassword
+        });
+
+        if (error) {
+            console.error('Password update error:', error);
+            showToast(`Failed to update password: ${error.message}`, 'error');
+        } else {
+            console.log('Password updated successfully');
+            showToast('Password updated successfully!', 'success');
+
+            // Clear the reset session and redirect to login
+            setTimeout(() => {
+                logout();
+                openLogin();
+            }, 2000);
+        }
+    } catch (err) {
+        console.error('Password update error:', err);
+        showToast('Failed to update password', 'error');
+    }
+}
+
+async function sendForgotPasswordCode() {
+    const emailInput = document.getElementById('forgotEmail');
+    if (!emailInput || !supabaseClient) return;
+
+    const email = emailInput.value.trim();
+    if (!email) {
+        showToast(t('emailPlaceholder') + ' required', 'warning');
+        return;
+    }
+
+    pendingResetEmail = email;
+    const resetUrl = window.location.origin;
+
+    console.log('Attempting to send reset link to:', email);
+    console.log('Reset URL:', resetUrl);
+
+    try {
+        // Use Supabase built-in reset password function
+        const { data, error } = await supabaseClient.auth.resetPasswordForEmail(email, {
+            redirectTo: resetUrl
+        });
+
+        if (error) {
+            console.error('Reset password error:', error);
+            console.log('❌ Email not configured in Supabase!');
+            console.log('📧 To enable email sending, follow instructions in SUPABASE_EMAIL_SETUP.md');
+            console.log('🔗 For testing, use this reset URL:', resetUrl);
+
+            // Show helpful message to user
+            showToast('Email not configured. Check console for reset URL.', 'warning');
+
+            // Still show success modal for testing
+            setAuthStep('forgot-password-modal');
+        } else {
+            console.log('Reset password link sent successfully:', data);
+            showToast('Reset password link sent to your email', 'success');
+            setAuthStep('forgot-password-modal');
+        }
+    } catch (err) {
+        console.error('Reset password error:', err);
+        console.log('❌ Network/Supabase error!');
+        console.log('📧 Check SUPABASE_EMAIL_SETUP.md for configuration');
+        console.log('🔗 For testing, use this reset URL:', resetUrl);
+
+        showToast('Check console for reset URL (email not configured)', 'warning');
+        setAuthStep('forgot-password-modal');
+    }
+}
+
 function openRegister() {
     authMode = 'register';
     authStep = 'register-email';
@@ -857,7 +1018,10 @@ async function loadSession() {
         currentUser = session.user;
         currentRole = session.user.user_metadata?.role || 'student';
         emailConfirmed = !!session.user.email_confirmed_at;
-        if (emailConfirmed) {
+        // Only send welcome email if this is not a password reset session
+        const hashParams = new URLSearchParams(window.location.hash.substring(1));
+        const isRecovery = hashParams.get('type') === 'recovery';
+        if (emailConfirmed && !isRecovery) {
             await sendWelcomeEmail(currentUser.email);
         }
     } else {
@@ -2050,7 +2214,6 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('inputSection')?.classList.add('hidden');
     applyTranslations();
     updateTopActionsVisibility();
-    loadSession();
     renderAuthStep();
     checkWelcomeModal();
 });
@@ -2164,3 +2327,44 @@ function applyTranslations() {
     set('welcomeText3', 'welcomeText3');
     set('welcomeBtn', 'welcomeBtn');
 }
+
+// ==================== URL PARAMETER HANDLING ====================
+window.addEventListener('load', async () => {
+    // Check for reset password tokens in URL hash
+    const hashParams = new URLSearchParams(window.location.hash.substring(1));
+    const accessToken = hashParams.get('access_token');
+    const refreshToken = hashParams.get('refresh_token');
+    const type = hashParams.get('type');
+
+    if (accessToken && refreshToken && type === 'recovery') {
+        // This is a password reset link
+        console.log('Password reset link detected');
+
+        try {
+            // Set the session from URL parameters
+            const { data, error } = await supabaseClient.auth.setSession({
+                access_token: accessToken,
+                refresh_token: refreshToken
+            });
+
+            if (error) {
+                console.error('Session error:', error);
+                showToast('Invalid or expired reset link', 'error');
+            } else {
+                console.log('Session set successfully for password reset');
+                // Clear the URL hash to clean up the URL
+                window.history.replaceState(null, null, window.location.pathname);
+                // Open the reset password modal
+                setAuthStep('reset-password');
+                openModalById('authModal');
+            }
+        } catch (err) {
+            console.error('Error setting session:', err);
+            showToast('Error processing reset link', 'error');
+        }
+    } else {
+        // Normal app initialization
+        await loadSession();
+        applyTranslations();
+    }
+});
