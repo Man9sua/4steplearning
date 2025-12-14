@@ -31,20 +31,10 @@ Interactive, mobile-friendly web app that turns plain text into a four-step lear
 - `functions/` — serverless helpers (e.g., `check-email`).
 - `db_setup.js` — sample Supabase table setup helper.
 
-## Authentication Methods
-
-### Option 1: Supabase (Recommended)
-- Set `SUPABASE_URL` and `SUPABASE_ANON_KEY` in `script.js`
-- Set `AUTH_METHOD = 'supabase'` in the code
-- Secure: passwords are hashed, email verification required
-- Profiles: create `profiles(id uuid references auth.users, role text, email text, last_material text, created_at timestamptz)` and enable RLS
-
-### Option 2: Google Sheets (Simple but Insecure)
-- Set `AUTH_METHOD = 'sheets'` in `script.js`
-- ⚠️ **WARNING**: Passwords stored in plain text in Google Sheets!
-- Only use for testing/demo purposes
-- Create sheet with tabs: `Sheet1` (learning data), `users` (user database), `logs` (activity logs)
-- Users sheet format: Column A = email, Column B = password, Column C = role
+## Supabase (optional)
+- Set `SUPABASE_URL` and `SUPABASE_ANON_KEY` in `script.js` to enable login/signup, roles, and profiles.
+- Security: the anon key is public by design—use Row Level Security and least-privilege policies. If you must hide keys, route calls through a backend/serverless proxy (GitHub Pages alone cannot hide secrets).
+- Profiles: create `profiles(id uuid references auth.users, role text, email text, last_material text, created_at timestamptz)` and enable RLS with owner read/write.
 
 ## i18n
 - Keys live in `i18n` inside `script.js`. Add/extend translations there; `applyTranslations()` updates all static UI.
@@ -53,22 +43,8 @@ Interactive, mobile-friendly web app that turns plain text into a four-step lear
 - Scan/upload buttons are intentionally disabled until the flow is finalized. Samples modal lets you insert predefined materials with visible selection outline.
 
 ## Deployment
-- Static hosting works (GitHub Pages, Netlify, Vercel static).
-- **GitHub Pages**: Works out of the box with fallback data. Upload all files to your repository and enable Pages in settings. The app will use local data if Google Sheets API is unavailable.
+- Static hosting works (GitHub Pages, Netlify, Vercel static).  
 - With Supabase: static hosting is fine, but secrets stay public. To truly hide keys, put Supabase calls behind a protected backend/proxy (e.g., Vercel serverless) and keep secrets there.
-
-## Google Sheets API Setup
-To enable data loading from Google Sheets:
-1. Create a new Google Sheet with tabs: "Sheet1" (learning data), "users" (user database), "logs" (activity logs)
-2. In "Sheet1", add your Q&A data in columns A and B (question in A, answer in B)
-3. In "users" tab, add user data: Column A = email, Column B = password, Column C = role
-4. Go to Extensions → Apps Script
-5. Replace the default code with the code from `google-apps-script.js`
-6. Replace `'ТВОЙ_SHEET_ID'` with your actual Google Sheet ID (from the URL)
-7. Deploy as web app: Publish → Deploy as web app
-8. Set "Execute as: Me", "Who has access: Anyone"
-9. Copy the deployment URL and update `SHEETS_API_URL` in `script.js`
-10. Set `AUTH_METHOD = 'sheets'` in `script.js` for Google Sheets authentication
 
 ## Known notes
 - Matching and letter-build are labeled “in progress” in UI, but logic runs.

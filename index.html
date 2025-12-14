@@ -286,22 +286,5 @@
     <div class="toast-container" id="toastContainer"></div>
 
     <script src="script.js"></script>
-    <script type="module">
-        import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm"
-      
-        const supabase = createClient(
-          "https://wuciyhbdwzesnzinbux.supabase.co",
-          "PUBLIC_ANON_KEY"
-        )
-      
-        // ⬇️ ГЛАВНОЕ
-        await supabase.auth.getSession()
-      
-        // Чистим hash
-        if (location.hash) {
-          history.replaceState(null, "", location.pathname)
-        }
-      
-      </script>
-      </body>
-      </html>
+</body>
+</html>

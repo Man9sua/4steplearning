@@ -73,297 +73,12 @@ const supabaseClient = (typeof supabase !== 'undefined')
     ? supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
     : null;
 
-// Google Sheets API configuration
-// Replace this with your Google Apps Script web app URL after deployment
-const SHEETS_API_URL = 'https://script.googleusercontent.com/macros/echo?user_content_key=AehSKLh62WToTzCEr2YszdYL5zdRTKtx7b3ZNmzoG9bPEtWHmlzksMmQYYVBdUDu5wdvy2v8icWfjRZz7DHmh4__B914Ywgn3J9iahE7eLSpXz6HVxMuvVn5SHsBMUWknWyd5hkAiCFssDtuqh6cH6xMBaY5nboxPJFv0srRnAo6_07CGLcnTlBZHIiYAnS62BrolD2R47I_rCqma8VVXX9-_qxkNOw6cBaFLk7BztH11qz1B1nzViFbXTC3T1oJI8azF0ig0gDvfGjFjhzfrP2riUtY9DjRXQ&lib=M7U0zP2To7o9nRDSXAYhFdOK-zzuAOZUp';
-let sheetsData = null;
-
-// Authentication method: 'supabase' or 'sheets'
-const AUTH_METHOD = 'sheets'; // Change to 'supabase' to use Supabase instead
-
-// Fallback data in case Google Sheets API is not available
-const fallbackSheetsData = [
-    ["Алтын Орданың құлауы мен Ақ Орданың әлсіреуі барысында пайда болған мемлекеттің бірі", "Ноғай Ордасы"],
-    ["Ноғай Ордасының жер аумағы", "Еділ мен Жайық аралығында болды"],
-    ["Орталығы", "Жайықтың төменгі ағысы бойындағы қазіргі Атырау жанындағы Сарайшық қаласында орналасты"],
-    ["Сарайшық қаласының негізін", "XIII ғасырдың екінші жартысында Жошы ұрпақтары қалады"],
-    ["Сарайшықты XVI ғасырдың соңында", "Дон және Еділ казактары қаланы басып алып, тонауға ұшыратты"],
-    ["Жаңа мемлекеттің атауы байланысты", "Алтын Орданың әскер басы Ноғай есімімен"],
-    ["Үлкен ұлысты басқарды", "Ноғай"],
-    ["Мемлекеттегі маңыздылығы жағынан екінші орындағы лауазым", "беклербек"],
-    ["Маңғыт жұрты деп аталды", "Жайық пен Еділ аралығындағы тайпалар бірлестігі"],
-    ["Маңғыт жұртының (Ноғай Ордасының) қалыптасуы аяқталды", "XV ғасырдың бірінші жартысында"],
-    ["Ноғай Ордасының негізгі тұрғындары", "маңғыттар тайпасы"],
-    ["Ноғай Ордасының тәуелсіз мемлекет ретінде қалыптасуы", "Едіге тұсында"],
-    ["Ноғай Ордасы Алтын Ордадан бөліне бастады", "Едіге билік еткен тұста"],
-    ["Ноғай Ордасы XV ғасырдың ортасына қарай", "Едігенің ұлы Нұраддиннің тұсында түпкілікті түрде оқшауланды"],
-    ["XV ғасырдың екінші жартысына қарай ноғайлар жылжыды", "«өзбектер» жеріне"],
-    ["Ұлыстар басында тұрды", "мырзалар (түркі тайпаларының басшылары)"],
-    ["Үлкен кеңес", "жоғарғы билік болып табылды, оған ақсүйектер мен Едіге ұрпақтары енді"],
-    ["XVI ғасырдың басында", "Ноғай Ордасында құлдырау кезеңі басталды"],
-    ["XVI ғасырдың 50-жылдары", "Ноғай Ордасы бірнеше дербес иеліктерге бөлінді"],
-    ["Ноғайлар мен қазақтарды «екі туысқан Орда» деп атады", "Шоқан Уәлиханов"],
-    ["Ноғай Ордасы өркендеу дәуірінің белгісі болып табылады", "Едіге, Қамбар батыр, Ер Тарғын және басқа батырларға арналған эпостар"]
-];
-
 let currentUser = null;
 let currentRole = 'student';
 let emailConfirmed = false;
 
 // Language selection
 let currentLang = localStorage.getItem('lang') || 'kk';
-
-// ==================== GOOGLE SHEETS USERS FUNCTIONS ====================
-// Load users from Google Sheets (for backup/authentication)
-async function loadUsersFromSheets() {
-    try {
-        console.log('Loading users from Google Sheets...');
-        const response = await fetch(SHEETS_API_URL + '?action=getUsers', {
-            method: 'GET',
-            headers: {
-                'Content-Type': 'application/json',
-            }
-        });
-
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-        }
-
-        const data = await response.json();
-
-        if (data.values && Array.isArray(data.values)) {
-            // Skip header row and return users as array of objects
-            const users = data.values.slice(1).map(row => ({
-                email: row[0] || '',
-                password: row[1] || '',
-                role: row[2] || 'student'
-            })).filter(user => user.email && user.password);
-
-            console.log('Users loaded from Google Sheets:', users.length);
-            return users;
-        } else if (data.error) {
-            throw new Error('API returned error: ' + data.error);
-        } else {
-            throw new Error('Unexpected API response format');
-        }
-
-    } catch (error) {
-        console.error('Error loading users from Google Sheets:', error);
-        return [];
-    }
-}
-
-// Save user to Google Sheets
-async function saveUserToSheets(email, password, role = 'student') {
-    try {
-        const userData = {
-            action: 'addUser',
-            email: email,
-            password: password, // WARNING: Plain text password!
-            role: role,
-            timestamp: new Date().toISOString()
-        };
-
-        const response = await fetch(SHEETS_API_URL, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify(userData)
-        });
-
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-        }
-
-        const result = await response.json();
-        if (result.ok === true) {
-            console.log('User saved to Google Sheets successfully');
-            return true;
-        } else if (result.error) {
-            throw new Error('API returned error: ' + result.error);
-        } else {
-            return true;
-        }
-    } catch (error) {
-        console.error('Error saving user to Google Sheets:', error);
-        return false;
-    }
-}
-
-// Authenticate user against Google Sheets database
-async function authenticateWithSheets(email, password) {
-    const users = await loadUsersFromSheets();
-    const user = users.find(u => u.email === email && u.password === password);
-
-    if (user) {
-        console.log('User authenticated via Google Sheets:', user.email);
-        return {
-            email: user.email,
-            role: user.role,
-            confirmed: true // Sheets users are auto-confirmed
-        };
-    }
-
-    return null;
-}
-
-// ==================== GOOGLE SHEETS API FUNCTIONS ====================
-async function loadSheetsData() {
-    try {
-        console.log('Attempting to load data from Google Sheets API...');
-        const response = await fetch(SHEETS_API_URL, {
-            method: 'GET',
-            headers: {
-                'Content-Type': 'application/json',
-            }
-        });
-
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-        }
-
-        const data = await response.json();
-
-        if (data.values && Array.isArray(data.values)) {
-            sheetsData = data.values;
-            console.log('Google Sheets data loaded successfully:', sheetsData.length, 'rows');
-            return sheetsData;
-        } else if (data.error) {
-            throw new Error('API returned error: ' + data.error);
-        } else {
-            throw new Error('Unexpected API response format');
-        }
-
-    } catch (error) {
-        console.error('Error loading Google Sheets data:', error);
-        console.log('Using fallback data instead...');
-        showToast('Используются локальные данные (Google Sheets недоступен)', 'warning');
-
-        // Use fallback data
-        sheetsData = fallbackSheetsData;
-        return sheetsData;
-    }
-}
-
-async function saveToSheets(action, data) {
-    try {
-        // Prepare data to send to Google Sheets
-        const timestamp = new Date().toISOString();
-        const userEmail = currentUser?.email || 'anonymous';
-        const userRole = currentRole || 'student';
-
-        const sheetData = {
-            timestamp,
-            userEmail,
-            userRole,
-            action,
-            ...data
-        };
-
-        console.log('Attempting to save data to Google Sheets...');
-
-        // Send data to Google Sheets via API
-        const response = await fetch(SHEETS_API_URL, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify(sheetData)
-        });
-
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-        }
-
-        const result = await response.json();
-        if (result.ok === true) {
-            console.log('Data saved to Google Sheets successfully:', sheetData);
-            return true;
-        } else if (result.error) {
-            throw new Error('API returned error: ' + result.error);
-        } else {
-            console.warn('Unexpected response from Google Sheets API:', result);
-            return true; // Still consider it successful
-        }
-    } catch (error) {
-        console.error('Error saving to Google Sheets:', error);
-        // Don't show error toast for saving - just log it
-        console.log('Data saving failed, but continuing...');
-        return false;
-    }
-}
-
-async function saveLearningResults(results) {
-    const data = {
-        totalScore: score,
-        totalQuestions: totalQuestions,
-        accuracy: totalQuestions > 0 ? Math.round((score / totalQuestions) * 100) : 0,
-        modulesCompleted: {
-            flashcards: enabledModules.flashcards,
-            quiz: enabledModules.quiz,
-            matching: enabledModules.matching,
-            fillBlanks: enabledModules.fillBlanks
-        },
-        sectionScores: sectionScores,
-        materialLength: factsData.length,
-        language: currentLang,
-        ...results
-    };
-
-    return await saveToSheets('learning_completed', data);
-}
-
-async function saveUserAction(action, details = {}) {
-    const data = {
-        page: window.location.pathname,
-        userAgent: navigator.userAgent,
-        ...details
-    };
-
-    // Don't block the app if tracking fails
-    try {
-        await saveToSheets(action, data);
-    } catch (error) {
-        console.log('User action tracking failed (non-critical):', error.message);
-    }
-}
-
-// Get data from Google Sheets for use in app
-function getSheetsSampleData() {
-    if (!sheetsData || sheetsData.length === 0) {
-        return null;
-    }
-
-    // Return a random sample from sheets data
-    const randomIndex = Math.floor(Math.random() * Math.min(sheetsData.length, 10));
-    const sampleRow = sheetsData[randomIndex];
-
-    if (sampleRow && sampleRow.length >= 2) {
-        return {
-            name: sampleRow[0] || `Sample from Sheets ${randomIndex + 1}`,
-            text: sampleRow[1] || ''
-        };
-    }
-
-    return null;
-}
-
-// Load examples from Google Sheets
-async function loadSheetsExamples() {
-    await loadSheetsData();
-
-    if (sheetsData && sheetsData.length > 0) {
-        const sheetsExamples = sheetsData.slice(0, 5).map((row, index) => ({
-            name: row[0] || `Sheets Example ${index + 1}`,
-            text: row[1] || ''
-        })).filter(example => example.text.trim());
-
-        // Add to existing samples
-        currentSamples = [...currentSamples, ...sheetsExamples];
-        saveSamples(currentSamples);
-    }
-}
 
 const i18n = {
     kk: {
@@ -411,8 +126,8 @@ const i18n = {
         // Module modal
         moduleModalTitle: '📚 Оқыту модульдерін таңдаңыз',
         moduleFlashcards: '📇 Флэш-карталар',
-        moduleQuiz: '✅ Тест (дұрыс жауап)',
-        moduleMatching: '🔗 Сәйкестендіру (дайындалуда)',
+        moduleQuiz: '✅ Тест',
+        moduleMatching: '🔗 Сәйкестендіру',
         moduleFillBlanks: '✏️ Әріптерді жинау (дайындалуда)',
         moduleCancel: '❌ Болдырмау',
         moduleStart: '▶️ Бастау',
@@ -452,7 +167,6 @@ const i18n = {
         emailPlaceholder: 'Email',
         passwordPlaceholder: 'Құпиясөз',
         checkEmail: 'Тіркелуді растау үшін email-ді тексеріңіз.',
-        registerWaitToast: 'Email-ды растаған соң тіркелген деректермен кіріңіз. Хаттағы сілтеме ашылмаса — бұл қалыпты.',
         resetPassword: 'Құпиясөзді қалпына келтіру',
         resetEmailSent: 'Қалпына келтіру сілтемесі/коды поштаға жіберілді.',
         // Account
@@ -522,8 +236,8 @@ const i18n = {
         // Module modal
         moduleModalTitle: '📚 Выберите модули обучения',
         moduleFlashcards: '📇 Флэш-карты',
-        moduleQuiz: '✅ Тест (правильный ответ)',
-        moduleMatching: '🔗 Сопоставление (в разработке)',
+        moduleQuiz: '✅ Тест',
+        moduleMatching: '🔗 Сопоставление',
         moduleFillBlanks: '✏️ Сбор букв (в разработке)',
         moduleCancel: '❌ Отмена',
         moduleStart: '▶️ Начать',
@@ -563,7 +277,6 @@ const i18n = {
         emailPlaceholder: 'Email',
         passwordPlaceholder: 'Пароль',
         checkEmail: 'Проверьте email для подтверждения регистрации.',
-        registerWaitToast: 'После подтверждения почты войдите с зарегистрированными данными. Если ссылка в письме не открывается — это нормально.',
         resetPassword: 'Сброс пароля',
         resetEmailSent: 'Ссылка/код для сброса отправлены на почту.',
         // Account
@@ -633,8 +346,8 @@ const i18n = {
         // Module modal
         moduleModalTitle: '📚 Select learning modules',
         moduleFlashcards: '📇 Flashcards',
-        moduleQuiz: '✅ Quiz (correct answer)',
-        moduleMatching: '🔗 Matching (in progress)',
+        moduleQuiz: '✅ Quiz',
+        moduleMatching: '🔗 Matching',
         moduleFillBlanks: '✏️ Letter collection (in progress)',
         moduleCancel: '❌ Cancel',
         moduleStart: '▶️ Start',
@@ -674,7 +387,6 @@ const i18n = {
         emailPlaceholder: 'Email',
         passwordPlaceholder: 'Password',
         checkEmail: 'Check your email to confirm registration.',
-        registerWaitToast: 'After confirming your email, sign in with your registered credentials. If the link in the email does not open a page, that is expected.',
         resetPassword: 'Reset password',
         resetEmailSent: 'Reset link/code sent to your email.',
         // Account
@@ -967,11 +679,6 @@ async function submitRegisterPassword() {
         emailConfirmed = !!data.user?.email_confirmed_at;
         localStorage.setItem('lastAuthEmail', pendingEmail);
         setAuthStep('register-wait');
-        showToast(t('registerWaitToast'), 'info');
-
-        // Track registration in Google Sheets
-        await saveUserAction('user_registered', { email: pendingEmail });
-
         if (emailConfirmed) {
             await sendWelcomeEmail(pendingEmail);
             updateAuthUI();
@@ -1015,13 +722,11 @@ function closeAuthModal() {
 }
 
 async function logout() {
-    if (AUTH_METHOD === 'supabase' && supabaseClient) {
+    if (supabaseClient) {
         await supabaseClient.auth.signOut();
     }
-    // For sheets auth, just clear local state
     currentUser = null;
     currentRole = 'student';
-    emailConfirmed = false;
     updateAuthUI();
     closeAccount();
     // Return to home
@@ -1071,104 +776,49 @@ async function submitAuth(evt) {
     const email = emailInput ? emailInput.value.trim() : '';
     const password = passInput ? passInput.value : '';
     const role = document.getElementById('authRole') ? document.getElementById('authRole').value : 'student';
-
-    if (!email || !password) {
-        showToast('Please enter email and password.', 'warning');
-        return false;
+    if (!email || !password || !supabaseClient) {
+        showToast('Fill email/password and configure Supabase.', 'warning');
+        return;
     }
-
     try {
-        if (AUTH_METHOD === 'sheets') {
-            // Use Google Sheets authentication
-            if (authMode === 'register') {
-                // Check if user already exists
-                const existingUsers = await loadUsersFromSheets();
-                const userExists = existingUsers.some(u => u.email === email);
-
-                if (userExists) {
+        if (authMode === 'register') {
+            const { data, error } = await supabaseClient.auth.signUp({ email, password, options: { data: { role } } });
+            if (error) {
+                if (error.message && error.message.includes('registered')) {
                     showToast('Email already registered. Try Login.', 'warning');
-                    return false;
+                    return;
                 }
-
-                // Add new user to Google Sheets
-                const success = await saveUserToSheets(email, password, role);
-                if (success) {
-                    currentUser = { email: email, id: email };
-                    currentRole = role;
-                    emailConfirmed = true; // Sheets users are auto-confirmed
-                    showToast('Account created successfully!', 'success');
-
-                    // Track registration
-                    await saveUserAction('user_registered', { email: email });
-                } else {
-                    throw new Error('Failed to create account');
-                }
-            } else {
-                // Login with Google Sheets
-                const user = await authenticateWithSheets(email, password);
-                if (user) {
-                    currentUser = { email: user.email, id: user.email };
-                    currentRole = user.role;
-                    emailConfirmed = user.confirmed;
-                    showToast('Signed in as ' + user.email, 'success');
-
-                    // Track login
-                    await saveUserAction('user_login', { email: user.email, role: user.role });
-                } else {
-                    showToast('Invalid email or password.', 'error');
-                    return false;
-                }
+                throw error;
             }
+            currentUser = data.user;
+            currentRole = role;
+            emailConfirmed = !!data.user?.email_confirmed_at;
         } else {
-            // Use Supabase authentication
-            if (!supabaseClient) {
-                showToast('Supabase not configured.', 'error');
-                return false;
-            }
-
-            if (authMode === 'register') {
-                const { data, error } = await supabaseClient.auth.signUp({ email, password, options: { data: { role } } });
-                if (error) {
-                    if (error.message && error.message.includes('registered')) {
-                        showToast('Email already registered. Try Login.', 'warning');
-                        return false;
-                    }
-                    throw error;
+            const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
+            if (error) {
+                if (error.message && error.message.includes('invalid credentials')) {
+                    showToast('Invalid email or password.', 'error');
+                } else if (error.message && error.message.includes('already registered')) {
+                    showToast('Email already registered. Try Login.', 'warning');
                 }
-                currentUser = data.user;
-                currentRole = role;
-                emailConfirmed = !!data.user?.email_confirmed_at;
-            } else {
-                const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
-                if (error) {
-                    if (error.message && error.message.includes('invalid credentials')) {
-                        showToast('Invalid email or password.', 'error');
-                    } else if (error.message && error.message.includes('already registered')) {
-                        showToast('Email already registered. Try Login.', 'warning');
-                    }
-                    throw error;
-                }
-                currentUser = data.user;
-                currentRole = data.user?.user_metadata?.role || 'student';
-                emailConfirmed = !!data.session?.user?.email_confirmed_at;
+                throw error;
             }
-
-            if (!emailConfirmed) {
-                showToast(t('checkEmail'), 'info');
-                await logout();
-                return false;
-            }
+            currentUser = data.user;
+            currentRole = data.user?.user_metadata?.role || 'student';
+            emailConfirmed = !!data.session?.user?.email_confirmed_at;
         }
-
         localStorage.setItem('lastAuthEmail', email);
         closeAuthModal();
-        showToast('Welcome, ' + (currentUser?.email || ''), 'success');
-
+        if (!emailConfirmed) {
+            showToast(t('checkEmail'), 'info');
+            await logout();
+            return;
+        }
+        showToast('Signed in as ' + (currentUser?.email || ''), 'success');
         if (emailConfirmed) {
             await sendWelcomeEmail(email);
         }
-
-        await syncProfile(currentRole);
+        await syncProfile(role);
         updateAuthUI();
     } catch (err) {
         showToast('Auth error: ' + err.message, 'error');
@@ -1200,24 +850,17 @@ async function syncProfile(role) {
 }
 
 async function loadSession() {
-    if (AUTH_METHOD === 'supabase') {
-        if (!supabaseClient) return;
-        const { data } = await supabaseClient.auth.getSession();
-        const session = data?.session;
-        if (session?.user) {
-            currentUser = session.user;
-            currentRole = session.user.user_metadata?.role || 'student';
-            emailConfirmed = !!session.user.email_confirmed_at;
-            if (emailConfirmed) {
-                await sendWelcomeEmail(currentUser.email);
-            }
-        } else {
-            currentUser = null;
-            emailConfirmed = false;
+    if (!supabaseClient) return;
+    const { data } = await supabaseClient.auth.getSession();
+    const session = data?.session;
+    if (session?.user) {
+        currentUser = session.user;
+        currentRole = session.user.user_metadata?.role || 'student';
+        emailConfirmed = !!session.user.email_confirmed_at;
+        if (emailConfirmed) {
+            await sendWelcomeEmail(currentUser.email);
         }
     } else {
-        // For Google Sheets auth, check if user was previously logged in
-        // (we could store this in localStorage if needed)
         currentUser = null;
         emailConfirmed = false;
     }
@@ -1269,7 +912,7 @@ function closeModuleModal() {
     closeModalById('moduleModal');
 }
 
-async function startLearning() {
+function startLearning() {
     // Get selected modules
     enabledModules.flashcards = document.getElementById('chkFlashcards').checked;
     enabledModules.quiz = document.getElementById('chkQuiz').checked;
@@ -1297,12 +940,6 @@ async function startLearning() {
     document.getElementById('inputSection').classList.add('hidden');
     document.getElementById('learningSection').classList.remove('hidden');
     updateTopActionsVisibility();
-
-    // Track learning start in Google Sheets
-    await saveUserAction('learning_started', {
-        materialLength: factsData.length,
-        modulesSelected: enabledModules
-    });
     
     // Reset all navigation buttons visibility for new session
     const finishRow = document.querySelector('.navigation.finish-row');
@@ -1475,10 +1112,8 @@ function selectSample(idx) {
     renderSamples();
 }
 
-async function openSamplesModal() {
+function openSamplesModal() {
     currentSamples = loadSamples();
-    // Load additional examples from Google Sheets
-    await loadSheetsExamples();
     renderSamples();
     openModalById('samplesModal');
 }
@@ -2322,11 +1957,8 @@ function skipToNextFill(nextIndex) {
 }
 
 // ==================== COMPLETION ====================
-async function showCompletion() {
+function showCompletion() {
     const statsContainer = document.getElementById('completionStats');
-
-    // Save learning results to Google Sheets
-    await saveLearningResults();
     
     // Update completion titles
     const completionH2 = document.querySelector('#completionModule .completion-screen h2');
@@ -2411,7 +2043,7 @@ function checkWelcomeModal() {
 }
 
 // ==================== INIT ====================
-document.addEventListener('DOMContentLoaded', async () => {
+document.addEventListener('DOMContentLoaded', () => {
     initLanguageSwitcher();
     // Default view: homeSection shown, learning hidden
     document.getElementById('homeSection')?.classList.remove('hidden');
@@ -2421,31 +2053,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     loadSession();
     renderAuthStep();
     checkWelcomeModal();
-
-    // Load Google Sheets data on startup (with timeout for GitHub Pages)
-    try {
-        // Set a timeout for the data loading to prevent hanging on slow networks
-        const dataPromise = loadSheetsData();
-        const timeoutPromise = new Promise((_, reject) =>
-            setTimeout(() => reject(new Error('Timeout')), 5000)
-        );
-
-        await Promise.race([dataPromise, timeoutPromise]);
-        console.log('Sheets data loaded successfully');
-    } catch (error) {
-        console.log('Sheets data loading failed, using fallback data:', error.message);
-        // Ensure we have fallback data available
-        if (!sheetsData || sheetsData.length === 0) {
-            sheetsData = fallbackSheetsData;
-        }
-    }
-
-    // Track user actions (don't fail if this doesn't work)
-    try {
-        await saveUserAction('app_loaded');
-    } catch (error) {
-        console.log('User action tracking failed:', error.message);
-    }
 });
 
 function t(key) {

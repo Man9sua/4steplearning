@@ -788,9 +788,8 @@ button:disabled {
 
 .info-text {
     font-size: 0.95em;
-    color: #e1f2e8;
+    color: #333;
     margin-bottom: 6px;
-    font-weight: 600;
 }
 
 .info-sub {
