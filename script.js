@@ -832,7 +832,8 @@ async function sendForgotPasswordCode() {
     }
 
     pendingResetEmail = email;
-    const resetUrl = window.location.origin;
+    // Use query parameters for Netlify compatibility
+    const resetUrl = `${window.location.origin}?type=recovery`;
 
     console.log('Attempting to send reset link to:', email);
     console.log('Reset URL:', resetUrl);
@@ -2330,15 +2331,39 @@ function applyTranslations() {
 
 // ==================== URL PARAMETER HANDLING ====================
 window.addEventListener('load', async () => {
-    // Check for reset password tokens in URL hash
+    // Small delay to ensure everything is loaded
+    await new Promise(resolve => setTimeout(resolve, 100));
+    // Check for reset password tokens in URL (both hash and query params for Netlify compatibility)
     const hashParams = new URLSearchParams(window.location.hash.substring(1));
-    const accessToken = hashParams.get('access_token');
-    const refreshToken = hashParams.get('refresh_token');
-    const type = hashParams.get('type');
+    const queryParams = new URLSearchParams(window.location.search);
+
+    // Try hash params first (local development), then query params (Netlify)
+    let accessToken = hashParams.get('access_token') || queryParams.get('access_token');
+    let refreshToken = hashParams.get('refresh_token') || queryParams.get('refresh_token');
+    let type = hashParams.get('type') || queryParams.get('type');
+
+    // Also check for fragment parameter that Supabase might use
+    if (!type && window.location.hash.includes('type=recovery')) {
+        type = 'recovery';
+    }
+
+    // Additional check: sometimes Supabase puts tokens in the full URL
+    if (!accessToken && window.location.href.includes('access_token=')) {
+        const fullUrl = window.location.href;
+        const urlObj = new URL(fullUrl);
+        accessToken = urlObj.searchParams.get('access_token') || hashParams.get('access_token');
+        refreshToken = urlObj.searchParams.get('refresh_token') || hashParams.get('refresh_token');
+        type = urlObj.searchParams.get('type') || hashParams.get('type');
+    }
 
     if (accessToken && refreshToken && type === 'recovery') {
         // This is a password reset link
         console.log('Password reset link detected');
+        console.log('Current URL:', window.location.href);
+        console.log('Hash params:', window.location.hash);
+        console.log('Query params:', window.location.search);
+        console.log('Access token:', accessToken.substring(0, 20) + '...');
+        console.log('Type:', type);
 
         try {
             // Set the session from URL parameters
@@ -2352,7 +2377,7 @@ window.addEventListener('load', async () => {
                 showToast('Invalid or expired reset link', 'error');
             } else {
                 console.log('Session set successfully for password reset');
-                // Clear the URL hash to clean up the URL
+                // Clear the URL parameters to clean up the URL
                 window.history.replaceState(null, null, window.location.pathname);
                 // Open the reset password modal
                 setAuthStep('reset-password');
