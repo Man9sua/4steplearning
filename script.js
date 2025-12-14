@@ -77,6 +77,9 @@ const supabaseClient = (typeof supabase !== 'undefined')
 const SHEETS_API_URL = 'https://ozgergsheets.kengot987654321.workers.dev';
 let sheetsData = null;
 
+// Authentication method: 'supabase' or 'sheets'
+const AUTH_METHOD = 'sheets'; // Change to 'supabase' to use Supabase instead
+
 // Fallback data in case Google Sheets API is not available
 const fallbackSheetsData = [
     ["Алтын Орданың құлауы мен Ақ Орданың әлсіреуі барысында пайда болған мемлекеттің бірі", "Ноғай Ордасы"],
@@ -109,28 +112,128 @@ let emailConfirmed = false;
 // Language selection
 let currentLang = localStorage.getItem('lang') || 'kk';
 
-// ==================== GOOGLE SHEETS API FUNCTIONS ====================
-async function loadSheetsData() {
+// ==================== GOOGLE SHEETS USERS FUNCTIONS ====================
+// Load users from Google Sheets (for backup/authentication)
+async function loadUsersFromSheets() {
     try {
-        console.log('Attempting to load data from Google Sheets API...');
-        const response = await fetch(SHEETS_API_URL);
+        console.log('Loading users from Google Sheets...');
+        const response = await fetch(SHEETS_API_URL + '?action=getUsers', {
+            method: 'GET',
+            headers: {
+                'Content-Type': 'application/json',
+            }
+        });
 
         if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`);
         }
 
-        const contentType = response.headers.get('content-type');
-        if (contentType && contentType.includes('application/json')) {
-            const data = await response.json();
-            sheetsData = data.values || [];
-            console.log('Google Sheets data loaded successfully:', sheetsData);
+        const data = await response.json();
+
+        if (data.values && Array.isArray(data.values)) {
+            // Skip header row and return users as array of objects
+            const users = data.values.slice(1).map(row => ({
+                email: row[0] || '',
+                password: row[1] || '',
+                role: row[2] || 'student'
+            })).filter(user => user.email && user.password);
+
+            console.log('Users loaded from Google Sheets:', users.length);
+            return users;
+        } else if (data.error) {
+            throw new Error('API returned error: ' + data.error);
         } else {
-            // If API returns plain text, use fallback data
-            console.warn('Google Sheets API returned non-JSON response, using fallback data');
-            sheetsData = fallbackSheetsData;
+            throw new Error('Unexpected API response format');
         }
 
-        return sheetsData;
+    } catch (error) {
+        console.error('Error loading users from Google Sheets:', error);
+        return [];
+    }
+}
+
+// Save user to Google Sheets
+async function saveUserToSheets(email, password, role = 'student') {
+    try {
+        const userData = {
+            action: 'addUser',
+            email: email,
+            password: password, // WARNING: Plain text password!
+            role: role,
+            timestamp: new Date().toISOString()
+        };
+
+        const response = await fetch(SHEETS_API_URL, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(userData)
+        });
+
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        const result = await response.json();
+        if (result.ok === true) {
+            console.log('User saved to Google Sheets successfully');
+            return true;
+        } else if (result.error) {
+            throw new Error('API returned error: ' + result.error);
+        } else {
+            return true;
+        }
+    } catch (error) {
+        console.error('Error saving user to Google Sheets:', error);
+        return false;
+    }
+}
+
+// Authenticate user against Google Sheets database
+async function authenticateWithSheets(email, password) {
+    const users = await loadUsersFromSheets();
+    const user = users.find(u => u.email === email && u.password === password);
+
+    if (user) {
+        console.log('User authenticated via Google Sheets:', user.email);
+        return {
+            email: user.email,
+            role: user.role,
+            confirmed: true // Sheets users are auto-confirmed
+        };
+    }
+
+    return null;
+}
+
+// ==================== GOOGLE SHEETS API FUNCTIONS ====================
+async function loadSheetsData() {
+    try {
+        console.log('Attempting to load data from Google Sheets API...');
+        const response = await fetch(SHEETS_API_URL, {
+            method: 'GET',
+            headers: {
+                'Content-Type': 'application/json',
+            }
+        });
+
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        const data = await response.json();
+
+        if (data.values && Array.isArray(data.values)) {
+            sheetsData = data.values;
+            console.log('Google Sheets data loaded successfully:', sheetsData.length, 'rows');
+            return sheetsData;
+        } else if (data.error) {
+            throw new Error('API returned error: ' + data.error);
+        } else {
+            throw new Error('Unexpected API response format');
+        }
+
     } catch (error) {
         console.error('Error loading Google Sheets data:', error);
         console.log('Using fallback data instead...');
@@ -172,10 +275,12 @@ async function saveToSheets(action, data) {
             throw new Error(`HTTP error! status: ${response.status}`);
         }
 
-        const result = await response.text();
-        if (result === 'OK' || result.includes('success')) {
+        const result = await response.json();
+        if (result.ok === true) {
             console.log('Data saved to Google Sheets successfully:', sheetData);
             return true;
+        } else if (result.error) {
+            throw new Error('API returned error: ' + result.error);
         } else {
             console.warn('Unexpected response from Google Sheets API:', result);
             return true; // Still consider it successful
@@ -909,11 +1014,13 @@ function closeAuthModal() {
 }
 
 async function logout() {
-    if (supabaseClient) {
+    if (AUTH_METHOD === 'supabase' && supabaseClient) {
         await supabaseClient.auth.signOut();
     }
+    // For sheets auth, just clear local state
     currentUser = null;
     currentRole = 'student';
+    emailConfirmed = false;
     updateAuthUI();
     closeAccount();
     // Return to home
@@ -963,51 +1070,104 @@ async function submitAuth(evt) {
     const email = emailInput ? emailInput.value.trim() : '';
     const password = passInput ? passInput.value : '';
     const role = document.getElementById('authRole') ? document.getElementById('authRole').value : 'student';
-    if (!email || !password || !supabaseClient) {
-        showToast('Fill email/password and configure Supabase.', 'warning');
-        return;
+
+    if (!email || !password) {
+        showToast('Please enter email and password.', 'warning');
+        return false;
     }
+
     try {
-        if (authMode === 'register') {
-            const { data, error } = await supabaseClient.auth.signUp({ email, password, options: { data: { role } } });
-            if (error) {
-                if (error.message && error.message.includes('registered')) {
+        if (AUTH_METHOD === 'sheets') {
+            // Use Google Sheets authentication
+            if (authMode === 'register') {
+                // Check if user already exists
+                const existingUsers = await loadUsersFromSheets();
+                const userExists = existingUsers.some(u => u.email === email);
+
+                if (userExists) {
                     showToast('Email already registered. Try Login.', 'warning');
-                    return;
+                    return false;
                 }
-                throw error;
-            }
-            currentUser = data.user;
-            currentRole = role;
-            emailConfirmed = !!data.user?.email_confirmed_at;
-        } else {
-            const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
-            if (error) {
-                if (error.message && error.message.includes('invalid credentials')) {
+
+                // Add new user to Google Sheets
+                const success = await saveUserToSheets(email, password, role);
+                if (success) {
+                    currentUser = { email: email, id: email };
+                    currentRole = role;
+                    emailConfirmed = true; // Sheets users are auto-confirmed
+                    showToast('Account created successfully!', 'success');
+
+                    // Track registration
+                    await saveUserAction('user_registered', { email: email });
+                } else {
+                    throw new Error('Failed to create account');
+                }
+            } else {
+                // Login with Google Sheets
+                const user = await authenticateWithSheets(email, password);
+                if (user) {
+                    currentUser = { email: user.email, id: user.email };
+                    currentRole = user.role;
+                    emailConfirmed = user.confirmed;
+                    showToast('Signed in as ' + user.email, 'success');
+
+                    // Track login
+                    await saveUserAction('user_login', { email: user.email, role: user.role });
+                } else {
                     showToast('Invalid email or password.', 'error');
-                } else if (error.message && error.message.includes('already registered')) {
-                    showToast('Email already registered. Try Login.', 'warning');
+                    return false;
                 }
-                throw error;
             }
-            currentUser = data.user;
-            currentRole = data.user?.user_metadata?.role || 'student';
-            emailConfirmed = !!data.session?.user?.email_confirmed_at;
+        } else {
+            // Use Supabase authentication
+            if (!supabaseClient) {
+                showToast('Supabase not configured.', 'error');
+                return false;
+            }
+
+            if (authMode === 'register') {
+                const { data, error } = await supabaseClient.auth.signUp({ email, password, options: { data: { role } } });
+                if (error) {
+                    if (error.message && error.message.includes('registered')) {
+                        showToast('Email already registered. Try Login.', 'warning');
+                        return false;
+                    }
+                    throw error;
+                }
+                currentUser = data.user;
+                currentRole = role;
+                emailConfirmed = !!data.user?.email_confirmed_at;
+            } else {
+                const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
+                if (error) {
+                    if (error.message && error.message.includes('invalid credentials')) {
+                        showToast('Invalid email or password.', 'error');
+                    } else if (error.message && error.message.includes('already registered')) {
+                        showToast('Email already registered. Try Login.', 'warning');
+                    }
+                    throw error;
+                }
+                currentUser = data.user;
+                currentRole = data.user?.user_metadata?.role || 'student';
+                emailConfirmed = !!data.session?.user?.email_confirmed_at;
+            }
+
+            if (!emailConfirmed) {
+                showToast(t('checkEmail'), 'info');
+                await logout();
+                return false;
+            }
         }
+
         localStorage.setItem('lastAuthEmail', email);
         closeAuthModal();
-        if (!emailConfirmed) {
-            showToast(t('checkEmail'), 'info');
-            await logout();
-            return;
-        }
-        showToast('Signed in as ' + (currentUser?.email || ''), 'success');
+        showToast('Welcome, ' + (currentUser?.email || ''), 'success');
+
         if (emailConfirmed) {
             await sendWelcomeEmail(email);
-            // Track login in Google Sheets
-            await saveUserAction('user_login', { email: currentUser.email, role: currentRole });
         }
-        await syncProfile(role);
+
+        await syncProfile(currentRole);
         updateAuthUI();
     } catch (err) {
         showToast('Auth error: ' + err.message, 'error');
@@ -1039,17 +1199,24 @@ async function syncProfile(role) {
 }
 
 async function loadSession() {
-    if (!supabaseClient) return;
-    const { data } = await supabaseClient.auth.getSession();
-    const session = data?.session;
-    if (session?.user) {
-        currentUser = session.user;
-        currentRole = session.user.user_metadata?.role || 'student';
-        emailConfirmed = !!session.user.email_confirmed_at;
-        if (emailConfirmed) {
-            await sendWelcomeEmail(currentUser.email);
+    if (AUTH_METHOD === 'supabase') {
+        if (!supabaseClient) return;
+        const { data } = await supabaseClient.auth.getSession();
+        const session = data?.session;
+        if (session?.user) {
+            currentUser = session.user;
+            currentRole = session.user.user_metadata?.role || 'student';
+            emailConfirmed = !!session.user.email_confirmed_at;
+            if (emailConfirmed) {
+                await sendWelcomeEmail(currentUser.email);
+            }
+        } else {
+            currentUser = null;
+            emailConfirmed = false;
         }
     } else {
+        // For Google Sheets auth, check if user was previously logged in
+        // (we could store this in localStorage if needed)
         currentUser = null;
         emailConfirmed = false;
     }
