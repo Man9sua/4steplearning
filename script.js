@@ -75,7 +75,7 @@ const supabaseClient = (typeof supabase !== 'undefined')
 
 // Google Sheets API configuration
 // Replace this with your Google Apps Script web app URL after deployment
-const SHEETS_API_URL = 'https://script.google.com/macros/s/AKfycbxjhAN2Aw3jyGStoFnQ_ctdbzbDld0TTbajgd9-H5eQeHfLBmFTIGsMrynaVkahoxkv/exec';
+const SHEETS_API_URL = 'https://script.google.com/macros/s/AKfycbzaQSv6zFyU9lHkrhZkw2_3OrJ_bTxR-6VBJ7ViLIXN-iCCEngVtmi5hJZKDy7h6DOo/exec';
 let sheetsData = null;
 
 // Authentication method: 'supabase' or 'sheets'
