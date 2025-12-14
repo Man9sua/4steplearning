@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>Auth redirect</title>
+</head>
+<body>
+
+<script type="module">
+  import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm"
+
+  const supabase = createClient(
+    "https://wuciyhbdwzesnzinbux.supabase.co",
+    "PUBLIC_ANON_KEY"
+  )
+
+  // забираем access_token из hash
+  await supabase.auth.getSession()
+
+  // чистим URL
+  if (location.hash) {
+    history.replaceState(null, "", "/4steplearning/")
+  }
+
+  // идём в приложение
+  location.replace("/4steplearning/")
+</script>
+
+</body>
+</html>
