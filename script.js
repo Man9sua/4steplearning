@@ -74,7 +74,8 @@ const supabaseClient = (typeof supabase !== 'undefined')
     : null;
 
 // Google Sheets API configuration
-const SHEETS_API_URL = 'https://ozgergsheets.kengot987654321.workers.dev';
+// Replace this with your Google Apps Script web app URL after deployment
+const SHEETS_API_URL = 'https://script.google.com/macros/s/AKfycbzQlwbr2AHJFuCnIcnQRawpHBzbz-8snqijk-cnLQJ9wffT4ipt6ISHgcLLkbBKY4rg/exec';
 let sheetsData = null;
 
 // Authentication method: 'supabase' or 'sheets'
